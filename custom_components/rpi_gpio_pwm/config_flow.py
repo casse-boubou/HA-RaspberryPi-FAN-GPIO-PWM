@@ -7,7 +7,12 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import (
     CONF_ENTITY_ID,
     CONF_HOST,
@@ -117,7 +122,7 @@ async def async_get_entity_id_by_unique_id(
 async def update_entity_ID(
     hass: HomeAssistant, entity_id_OLD: str, entity_id_NEW: str
 ) -> None:
-    """Update entity if change in Config Flow.."""
+    """Update entity if change in Config Flow."""
     entity_registry = er.async_get(hass)
     entity_registry.async_update_entity(
         entity_id=entity_id_OLD,
@@ -164,7 +169,9 @@ class GPIOPWMConfigFlow(ConfigFlow, domain=DOMAIN):
             menu_options=["light", "fan"],
         )
 
-    async def async_step_light(self, user_input: dict | None = None) -> ConfigFlowResult:
+    async def async_step_light(
+        self, user_input: dict | None = None
+    ) -> ConfigFlowResult:
         """Invoke when a user initiates a flow via the user interface."""
         errors: dict[str, str] = {}
 
@@ -247,10 +254,7 @@ class GPIOPWMOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         # Stock OLD entity_id and add it to data for show it in config suggested_values in case it need to change
-        if self.config_entry.data[CONF_PLATFORM] == CONF_LIGHT:
-            PLATFORM = CONF_LIGHT
-        elif self.config_entry.data[CONF_PLATFORM] == CONF_FAN:
-            PLATFORM = CONF_FAN
+        PLATFORM = self.data[CONF_PLATFORM]
         entity_id_old = await async_get_entity_id_by_unique_id(
             hass=self.hass,
             PlatForm=PLATFORM,
@@ -285,10 +289,12 @@ class GPIOPWMOptionsFlow(OptionsFlow):
 
             if not errors:
                 # Update the entity
-                if self.config_entry.data[CONF_PLATFORM] == CONF_LIGHT:
-                    TITLE = "GPIO " + str(self.data[CONF_PIN]) + " PWM " + CONF_LIGHT
-                elif self.config_entry.data[CONF_PLATFORM] == CONF_FAN:
-                    TITLE = "GPIO " + str(self.data[CONF_PIN]) + " PWM " + CONF_FAN
+                TITLE = (
+                    "GPIO "
+                    + str(self.data[CONF_PIN])
+                    + " PWM "
+                    + self.data[CONF_PLATFORM]
+                )
                 self.hass.config_entries.async_update_entry(
                     self.config_entry,
                     title=TITLE,
