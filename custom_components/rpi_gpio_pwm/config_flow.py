@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 import copy
 from typing import Any
+import uuid
 
 import voluptuous as vol
 
@@ -127,7 +128,7 @@ async def entity_id_available(hass: HomeAssistant, entity_id: str) -> bool:
     ) and hass.states.async_available(entity_id)
 
 
-async def update_entity_ID(
+async def update_entity_id(
     hass: HomeAssistant, entity_id_OLD: str, entity_id_NEW: str
 ) -> None:
     """Update entity if change in Config Flow."""
@@ -196,6 +197,12 @@ class GPIOPWMConfigFlow(ConfigFlow, domain=DOMAIN):
             if pin_is_free is False:
                 errors[CONF_PIN] = "pin_used"
 
+            # Assign a unique ID to the flow and abort the flow
+            # if another flow with the same unique ID is in progress
+            await self.async_set_unique_id(str(uuid.uuid4()))
+            # Abort the flow if a config entry with the same unique ID exists
+            self._abort_if_unique_id_configured()
+
             if not errors:
                 # Create the entity
                 return self.async_create_entry(
@@ -224,6 +231,12 @@ class GPIOPWMConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             if pin_is_free is False:
                 errors[CONF_PIN] = "pin_used"
+
+            # Assign a unique ID to the flow and abort the flow
+            # if another flow with the same unique ID is in progress
+            await self.async_set_unique_id(str(uuid.uuid4()))
+            # Abort the flow if a config entry with the same unique ID exists
+            self._abort_if_unique_id_configured()
 
             if not errors:
                 # Create the entity
@@ -318,7 +331,7 @@ class GPIOPWMOptionsFlow(OptionsFlow):
 
                 # Updates the entity_id if it changes
                 if entity_id_old != self.data[CONF_ENTITY_ID]:
-                    await update_entity_ID(
+                    await update_entity_id(
                         hass=self.hass,
                         entity_id_OLD=entity_id_old,
                         entity_id_NEW=self.data[CONF_ENTITY_ID],

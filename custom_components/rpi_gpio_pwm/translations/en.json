@@ -6,6 +6,9 @@
         "error": {
             "pin_used": "The selected pin is already in use."
         },
+        "abort": {
+          "already_configured": "Flow aborded because another flow with same Unique ID is already configured"
+        },
         "step": {
             "user": {
                "menu_options": {
