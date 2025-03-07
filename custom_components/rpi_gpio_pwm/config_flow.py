@@ -2,7 +2,6 @@
 
 from collections.abc import Mapping
 import copy
-import re
 from typing import Any
 
 import voluptuous as vol
@@ -20,7 +19,7 @@ from homeassistant.const import (
     CONF_PLATFORM,
     CONF_PORT,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, callback, valid_entity_id
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import entity_registry as er, selector
 import homeassistant.helpers.config_validation as cv
@@ -117,6 +116,15 @@ async def async_get_entity_id_by_unique_id(
     return entity_registry.async_get_entity_id(
         domain=PlatForm, platform=DOMAIN, unique_id=Unique_ID
     )
+
+
+async def entity_id_available(hass: HomeAssistant, entity_id: str) -> bool:
+    """Return True if the entity_id is available."""
+
+    entity_registry = er.async_get(hass)
+    return not entity_registry.async_is_registered(
+        entity_id
+    ) and hass.states.async_available(entity_id)
 
 
 async def update_entity_ID(
@@ -277,15 +285,20 @@ class GPIOPWMOptionsFlow(OptionsFlow):
                 if pin_is_free is False:
                     errors[CONF_PIN] = "pin_used"
 
+            self.data[CONF_ENTITY_ID] = (
+                self.data[CONF_PLATFORM] + "." + self.data[CONF_ENTITY_ID]
+            )
             # Check format for Entity_ID
-            if self.config_entry.data[CONF_PLATFORM] == CONF_LIGHT:
-                if re.match(r"^[_A-Za-z0-9]+$", self.data[CONF_ENTITY_ID]) is None:
-                    errors[CONF_ENTITY_ID] = "light_bad_EntityID_format"
-                self.data[CONF_ENTITY_ID] = "light." + self.data[CONF_ENTITY_ID]
-            elif self.config_entry.data[CONF_PLATFORM] == CONF_FAN:
-                if re.match(r"^[_A-Za-z0-9]+$", self.data[CONF_ENTITY_ID]) is None:
-                    errors[CONF_ENTITY_ID] = "fan_bad_EntityID_format"
-                self.data[CONF_ENTITY_ID] = "fan." + self.data[CONF_ENTITY_ID]
+            if valid_entity_id(self.data[CONF_ENTITY_ID]) is False:
+                errors[CONF_ENTITY_ID] = "bad_EntityID_format"
+            # Check if Entity_ID is already registered
+            if (
+                await entity_id_available(
+                    hass=self.hass, entity_id=self.data[CONF_ENTITY_ID]
+                )
+                is False
+            ):
+                errors[CONF_ENTITY_ID] = "EntityID_already_registered"
 
             if not errors:
                 # Update the entity
