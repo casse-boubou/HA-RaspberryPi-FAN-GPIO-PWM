@@ -88,18 +88,11 @@ DATA_SCHEMA_OptionFlowFan = vol.Schema(
 async def async_check_if_pin_is_used(hass: HomeAssistant, pin: int) -> str | None:
     """Check if pin is free or already use by rpi_gpio_pwm component."""
 
-    # Load all already configured config_entries (in .storage/core.config_entries)
-    config_entries_data = await hass.config_entries._store.async_load()
+    # Load all already configured config_entries for domain rpi_gpio_pwm
+    config_entries_data = hass.config_entries.async_entries(DOMAIN)
 
     # Create a list of pins already in use
-    pin_list = []
-    for i in config_entries_data:
-        if i == "entries":
-            for j in config_entries_data[i]:
-                if j.get("domain") == DOMAIN:
-                    for k in j:
-                        if k == "data":
-                            pin_list.extend([j[k].get(CONF_PIN)])
+    pin_list = [c.data.get(CONF_PIN) for c in config_entries_data]
 
     # Return True if pin is free, else False
     if pin in pin_list:
